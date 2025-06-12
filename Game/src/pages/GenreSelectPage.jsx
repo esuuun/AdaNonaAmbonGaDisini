@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, Loader } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
+import { motion } from "framer-motion";
+import { childVariants } from "../components/PageTransition";
 
 // Import genres from constants
 import { genres as defaultGenres } from "../constants/gameData";
@@ -63,7 +65,6 @@ function GenreSelectPage() {
     setStartingGenre(genreId);
     startGame(genreId);
   };
-
   return (
     <div className="p-4 md:p-8 flex flex-col items-center justify-center h-screen pt-20 ">
       {isLoading && (
@@ -82,12 +83,15 @@ function GenreSelectPage() {
           </p>
         </div>
       )}
-      <button
+
+      <motion.button
+        variants={childVariants}
         onClick={handleBack}
-        className="absolute top-32 left-4 md:left-8 text-slate-300 hover:text-white transition-colors flex items-center text-sm z-10"
+        className="absolute top-28 left-2 md:left-8 text-slate-300 hover:text-white transition-colors flex items-center text-sm z-10"
       >
         <ChevronLeft size={32} className="mr-1" />
-      </button>{" "}
+      </motion.button>
+
       {loading ? (
         <div className="text-white text-lg">Loading genres...</div>
       ) : currentDisplayGenres.length === 0 ? (

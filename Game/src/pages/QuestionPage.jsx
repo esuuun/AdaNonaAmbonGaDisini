@@ -205,6 +205,7 @@ function QuestionPage({ audioRef, isMuted }) {
   const [audioLoaded, setAudioLoaded] = useState(false);
   const [audioError, setAudioError] = useState(false);
   const [pointsToAdd, setPointsToAdd] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false); // New state to track if timer is running
   const startTimeRef = useRef(Date.now());
   const answerTimeRef = useRef(0);
   const timerRef = useRef(null);
@@ -215,6 +216,8 @@ function QuestionPage({ audioRef, isMuted }) {
     // Reset status untuk setiap pertanyaan baru
     setAudioLoaded(false);
     setAudioError(false);
+    setIsTimerRunning(false); // Reset timer status
+    startTimeRef.current = Date.now(); // Reset start time
 
     // Gunakan audioRef.current secara langsung
     const audio = audioRef.current;
@@ -230,6 +233,10 @@ function QuestionPage({ audioRef, isMuted }) {
         hasPlayed = true;
 
         setAudioLoaded(true);
+        // Set isTimerRunning to true to start timer
+        setIsTimerRunning(true);
+        // Reset start time to when audio is loaded
+        startTimeRef.current = Date.now();
 
         try {
           const audioDuration = audio.duration;
@@ -252,12 +259,15 @@ function QuestionPage({ audioRef, isMuted }) {
             playPromise.catch((error) => {
               console.warn("Autoplay dicegah:", error);
               setAudioError(true);
-              // Anda bisa menampilkan tombol 'Play' manual di UI jika ini terjadi
+              // Start timer even if audio autoplay fails
+              setIsTimerRunning(true);
             });
           }
         } catch (error) {
           console.warn("Gagal mengatur waktu mulai acak:", error);
           setAudioError(true);
+          // Start timer even if there's an error
+          setIsTimerRunning(true);
         }
       };
 
@@ -265,6 +275,8 @@ function QuestionPage({ audioRef, isMuted }) {
       const handleError = (e) => {
         console.error("Error audio:", e);
         setAudioError(true);
+        // Start timer even if there's an audio error
+        setIsTimerRunning(true);
       };
 
       // Tambahkan event listeners
@@ -288,17 +300,20 @@ function QuestionPage({ audioRef, isMuted }) {
           audio.load();
         }
       };
+    } else {
+      // If no audio source, start timer immediately
+      setIsTimerRunning(true);
     }
   }, [question, isMuted, audioRef]);
 
-  // Effect for timer
+  // Effect for timer - now depends on isTimerRunning
   useEffect(() => {
     setTimeLeft(TIME_PER_QUESTION); // Reset timer for new question
     setShowHint(false); // Reset hint visibility
     setCorrectAnswer(null); // Reset correct answer highlight
     setPointsToAdd(0); // Reset points to add
 
-    if (!question) return; // Don't start timer if no question
+    if (!question || !isTimerRunning) return; // Don't start timer if no question or not ready
 
     timerRef.current = setInterval(() => {
       setTimeLeft((prevTime) => {
@@ -318,7 +333,7 @@ function QuestionPage({ audioRef, isMuted }) {
         clearInterval(timerRef.current);
       }
     };
-  }, [question]);
+  }, [question, isTimerRunning]);
 
   const selectAnswer = (index) => {
     // Store the selected answer index
@@ -392,6 +407,74 @@ function QuestionPage({ audioRef, isMuted }) {
       </div>
     );
   }
+
+  // Show loading screen while audio is loading
+  // if (!audioLoaded && !audioError && question.audioSrc && !isTimerRunning) {
+  //   return (
+  //     <div className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden">
+  //       <div className="bg-[#11112A] p-8 rounded-xl shadow-xl max-w-md w-full">
+  //         <div className="flex flex-col items-center">
+  //           <Music className="text-yellow-400 w-12 h-12 mb-4 animate-pulse" />
+  //           <h3 className="text-2xl font-bold text-yellow-400 mb-4">
+  //             Memuat Audio
+  //           </h3>
+  //           <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden mb-2">
+  //             <div
+  //               className="h-full bg-yellow-400 animate-pulse"
+  //               style={{ width: "100%" }}
+  //             ></div>
+  //           </div>
+  //           <p className="text-slate-300 text-center mt-2">
+  //             Sedang mempersiapkan pertanyaan. Timer akan dimulai setelah audio
+  //             siap.
+  //           </p>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
+  // Show audio error screen if needed
+  if (audioError && !isTimerRunning) {
+    return (
+      <div className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden">
+        <div className="bg-[#11112A] p-8 rounded-xl shadow-xl max-w-md w-full">
+          <div className="flex flex-col items-center">
+            <div className="text-red-400 w-12 h-12 mb-4 flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                className="w-full h-full"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-red-400 mb-4">
+              Error Audio
+            </h3>
+            <p className="text-slate-300 text-center mb-4">
+              Gagal memuat audio. Klik tombol di bawah untuk melanjutkan tanpa
+              audio.
+            </p>
+            <button
+              onClick={() => setIsTimerRunning(true)}
+              className="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-slate-900 rounded-lg font-semibold"
+            >
+              Lanjutkan Tanpa Audio
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       className={`fixed inset-0 flex flex-col items-center justify-center overflow-hidden question-container`}
@@ -492,26 +575,8 @@ function QuestionPage({ audioRef, isMuted }) {
             }}
           >
             TEBAK LAGUNYA!
-          </motion.h3>
-
+          </motion.h3>{" "}
           {/* Audio status indicators */}
-          <AnimatePresence mode="wait">
-            {!audioLoaded && !audioError && (
-              <motion.div
-                className="flex justify-center items-center mb-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="animate-pulse text-yellow-400 flex items-center">
-                  <Music className="mr-2" />
-                  <span>Memuat audio...</span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           <AnimatePresence>
             {audioError && (
               <motion.div

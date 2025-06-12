@@ -99,4 +99,7 @@ function PageTransition({ children }) {
   );
 }
 
+// Export the childVariants so other components can use them
+export { childVariants };
+
 export default PageTransition;
