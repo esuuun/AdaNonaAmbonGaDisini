@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import logo from "../assets/logo.png";
+import logo from "/logo.png";
 
 const IntroAnimation = ({ onAnimationComplete }) => {
   const [showAnimation, setShowAnimation] = useState(true);
